@@ -1,0 +1,44 @@
+# Variables
+variable timestep equal timestep-to-adapt
+variable stride equal 0.1/${timestep}
+variable temperature equal 500.0
+variable t_damp equal ${timestep}*100.0
+variable sim_length equal 10000/${timestep}
+variable restart_long equal 10/${timestep}
+
+log formula-to-adapt.log
+
+# Initialise simulation
+units metal
+atom_style atomic
+dimension 3
+
+newton on
+boundary p p p
+
+# Read from restart file instead of data file
+read_restart formula-to-adapt.restart26
+
+# pair style
+pair_style metatomic mixed_kpoints_lora_v3.pt device cuda
+pair_coeff * * atomic-number-to-adapt
+
+timestep ${timestep}
+
+neighbor 1.0 bin
+neigh_modify delay 5 every 1
+
+# Outputting important quantities
+thermo ${stride}
+thermo_style custom time temp pe ke press
+
+# Dumping positions and forces with unique filenames
+dump dp1 all custom ${stride} formula-to-adapt.lammpstrj id mass type element xu yu zu
+dump_modify dp1 element atomic-symbols-to-adapt sort id
+
+# Write restart files at regular intervals with only 2 files
+restart ${restart_long} formula-to-adapt.restart27 formula-to-adapt.restart28
+
+# Run production simulation
+fix 1 all nvt temp ${temperature} ${temperature} ${t_damp}
+run ${sim_length}
