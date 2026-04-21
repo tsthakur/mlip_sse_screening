@@ -1,0 +1,63 @@
+base_precision: 32
+seed: 4242
+device: cuda
+architecture:
+  name: pet
+  model:
+    cutoff: 4.5
+    cutoff_width: 0.2
+    d_pet: 256 
+    d_head: 256 
+    d_feedforward: 512
+    num_heads: 8
+    num_attention_layers: 2 # transformer layers
+    num_gnn_layers: 2 # message passing layers
+    zbl: false
+    long_range:
+      enable: false
+      use_ewald: false
+      smearing: 1.4
+      kspace_resolution: 1.33
+      interpolation_nodes: 5
+  training:
+    batch_size: 10 # Use 10 structures in a batch if 24GB vram is available
+    num_epochs: 1000 
+    num_epochs_warmup: 100 # Do the 0 epochs of the learning rate warmup
+    checkpoint_interval: 50 # Save the checkpoint every 5 epochs
+    learning_rate: 1e-4
+    scheduler_patience: 100 # Reduce the learning rate if the validation loss does not improve
+    finetune:
+      method: lora
+      read_from: pet-mad-v1.0.2.ckpt
+      config:
+        alpha: 0.1
+        rank: 4
+training_set:
+  systems:
+    read_from: "mixed-kpoints-training.xyz" # file where the positions are stored
+    length_unit: angstrom
+  targets:
+    energy:
+      unit: eV
+      forces: true
+      stress: true
+
+validation_set:
+  systems: 
+    read_from: "mixed-kpoints-validation.xyz" # file where the positions are stored
+    length_unit: angstrom
+  targets:
+    energy:
+      unit: eV
+      forces: true
+      stress: true
+
+test_set:
+  systems: 
+    read_from: "mixed-kpoints-test.xyz" # file where the positions are stored
+    length_unit: angstrom
+  targets:
+    energy:
+      unit: eV
+      forces: true
+      stress: true
