@@ -36,6 +36,8 @@ class LammpsInputGenerator:
     temperature : float, optional
         Simulation temperature in K. Defaults to 500.0.
         Timestep is set to 0.001 ps for T > 650 K, else 0.002 ps.
+    simulation : int, optional
+        Simulation production length in ps. Defaults to 1000 ps.
     extras : str, optional
         Suffix appended to the formula string (e.g. a supercell tag).
     """
@@ -45,10 +47,11 @@ class LammpsInputGenerator:
     TIMESTEP_LOW_T = 0.002
 
     def __init__(self, structure, output_dir, template_dir=None,
-                 temperature=500.0, extras=None):
+                 temperature=500.0, simulation=1000, extras=None):
         self.structure = structure
         self.output_dir = output_dir
         self.temperature = temperature
+        self.simulation = simulation
         self.extras = extras
 
         if template_dir is None:
@@ -169,8 +172,9 @@ class LammpsInputGenerator:
         masses, numbers, symbols = self._element_info()
 
         content = content.replace('timestep-to-adapt', str(self.timestep))
+        content = content.replace('simulation-to-adapt', str(self.simulation))
         content = content.replace(
-            'temperature equal 500.0',
+            'temperature equal temperature-to-adapt',
             f'temperature equal {self.temperature}',
         )
         content = content.replace(
@@ -243,15 +247,16 @@ if __name__ == '__main__':
     from aiida import orm, load_profile
     load_profile('fpmd')
 
-    aiida_structure = orm.load_node('c9da1fd5-16df-4a21-8508-b0f2d8de0012')
+    aiida_structure = orm.load_node('acff0e4a-6b1d-4ca6-a5c8-33bb481713aa')
     structure = aiida_structure.get_pymatgen()
 
-    structure.make_supercell([2, 2, 2])  # Example supercell
+    # structure.make_supercell([2, 2, 2])  # Example supercell
     
     gen = LammpsInputGenerator(
         structure=structure,
         output_dir='./lammps_runs',
-        temperature=500.0,
+        temperature=1000.0,
+        simulation=2500,
         extras='',
     )
     # Auto-detect next run index and generate

@@ -1,9 +1,9 @@
 # Variables
 variable timestep equal timestep-to-adapt
 variable stride equal 0.1/${timestep}
-variable temperature equal 500.0
+variable temperature equal temperature-to-adapt
 variable t_damp equal ${timestep}*100.0
-variable sim_length equal 10000/${timestep}
+variable sim_length equal simulation-to-adapt/${timestep}
 variable restart_long equal 10/${timestep}
 
 log formula-to-adapt.log
