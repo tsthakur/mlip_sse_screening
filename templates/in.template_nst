@@ -1,0 +1,57 @@
+# Variables
+variable timestep equal timestep-to-adapt
+variable stride equal 1/${timestep}
+variable temperature equal temperature-to-adapt
+variable t_damp equal ${timestep}*100.0
+variable p_damp equal ${timestep}*1000.0
+variable eq_length equal nst-equil-to-adapt/${timestep}
+variable avg_length equal nst-avg-to-adapt/${timestep}
+
+log formula-to-adapt.log
+
+# Initialise simulation
+units metal
+atom_style atomic
+dimension 3
+
+newton on
+boundary p p p
+read_data formula-to-adapt.lmp
+mass mass-to-adapt
+
+# pair style
+pair_style metatomic upet-r2-s.pt device cuda
+pair_coeff * * atomic-number-to-adapt
+
+timestep ${timestep}
+
+velocity all create ${temperature} seed-to-adapt loop all
+
+neighbor 1.0 bin
+neigh_modify delay 5 every 1 one 20000 page 200000
+
+# Anisotropic barostat needs a triclinic box
+change_box all triclinic
+
+thermo ${stride}
+thermo_style custom time temp pe ke press vol cella cellb cellc cellalpha cellbeta cellgamma
+
+# Nose-Hoover barostat and SVR thermostat:
+# fix nph does the barostat and time integration,
+# fix temp/csvr only rescales velocities.
+fix 1 all nph tri 0.0 0.0 ${p_damp}
+fix 2 all temp/csvr ${temperature} ${temperature} ${t_damp} seed-to-adapt
+
+# Equilibrate the cell before averaging the cell parameters
+run ${eq_length}
+
+# a single averaged line is written at the final step
+variable acell equal cella
+variable bcell equal cellb
+variable ccell equal cellc
+variable alphacell equal cellalpha
+variable betacell equal cellbeta
+variable gammacell equal cellgamma
+fix avg all ave/time avg-every-to-adapt avg-repeat-to-adapt avg-freq-to-adapt v_acell v_bcell v_ccell v_alphacell v_betacell v_gammacell file formula-to-adapt.avgcell
+
+run ${avg_length}
